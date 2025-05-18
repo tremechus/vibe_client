@@ -218,6 +218,49 @@ class ChatBubble(QtWidgets.QWidget):
                 dlg.exec()
             icon_label.mouseDoubleClickEvent = show_response_dialog
 
+        # --- Double-click event for assistant icon to show chat history for that response ---
+        if role == "assistant":
+            def show_history_dialog(event):
+                dlg = QtWidgets.QDialog(self)
+                dlg.setWindowTitle("Chat History for This Response")
+                dlg.resize(700, 500)
+                layout = QtWidgets.QVBoxLayout(dlg)
+                history_text = QtWidgets.QPlainTextEdit()
+                history_text.setReadOnly(True)
+
+                # Find the chat history up to and including this response
+                parent = self.parent()
+                while parent and not hasattr(parent, "chat_history"):
+                    parent = parent.parent()
+                chat_history = getattr(parent, "chat_history", None)
+
+                # Find this message in the chat history
+                history_str = ""
+                if chat_history:
+                    # Try to find the index of this message in the chat history
+                    for i, msg in enumerate(chat_history):
+                        if (
+                            msg.get("role") == "assistant"
+                            and msg.get("content") == message
+                            and (think_content is None or msg.get("think_content") == think_content)
+                        ):
+                            # Show all messages up to and including this one
+                            history_to_show = chat_history[: i + 1]
+                            history_str = json.dumps(history_to_show, indent=2, ensure_ascii=False)
+                            break
+                    else:
+                        history_str = "Could not find this response in the chat history."
+                else:
+                    history_str = "No chat history available."
+
+                history_text.setPlainText(history_str)
+                layout.addWidget(history_text)
+                btn = QtWidgets.QPushButton("Close")
+                btn.clicked.connect(dlg.accept)
+                layout.addWidget(btn)
+                dlg.exec()
+            icon_label.mouseDoubleClickEvent = show_history_dialog
+
         if role == "user":
             layout.addStretch()
             layout.addWidget(bubble)
@@ -392,17 +435,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.model_combo.currentTextChanged.connect(self.save_model)
         left_panel.addWidget(self.model_combo)
 
-        # Prefix button
-        # prefix_btn = QtWidgets.QPushButton("Prefix")
-        # prefix_btn.clicked.connect(self.open_prefix_modal)
-        # left_panel.addWidget(prefix_btn)
+        # Add spacing between Model and Profiles
+        left_panel.addSpacing(10)  # <-- Add a little vertical padding
 
         # --- Profile selection panel (replace prefix button) ---
         profile_label = QtWidgets.QLabel("Profiles")
-        left_panel.addWidget(profile_label)
-        add_profile_btn = QtWidgets.QPushButton("+ New Profile")
+        # Create a horizontal layout for label + button
+        profile_row = QtWidgets.QHBoxLayout()
+        profile_row.addWidget(profile_label)
+        profile_row.addStretch(1)
+        add_profile_btn = QtWidgets.QPushButton()
+        add_profile_btn.setFixedSize(24, 24)
+        add_profile_btn.setToolTip("Add new profile")
+        # Use a standard plus icon or fallback to "+"
+        plus_icon = QtGui.QIcon.fromTheme("list-add")
+        if plus_icon.isNull():
+            add_profile_btn.setText("＋")
+            add_profile_btn.setFont(QtGui.QFont("Arial", 16, QtGui.QFont.Weight.Bold))
+        else:
+            add_profile_btn.setIcon(plus_icon)
         add_profile_btn.clicked.connect(self.add_new_profile)
-        left_panel.addWidget(add_profile_btn)
+        profile_row.addWidget(add_profile_btn)
+        left_panel.addLayout(profile_row)
         self.profile_list = QtWidgets.QListWidget()
         self.profile_list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
         self.profile_list.itemSelectionChanged.connect(self.on_profile_select)
@@ -411,13 +465,30 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh_profile_list()
         self.profile_list.setCurrentRow(self.selected_profile_idx)
 
+        # Add spacing between Profiles and Chats sections
+        left_panel.addSpacing(16)  # <-- Add vertical padding here
+
         # Chat history panel
         self.chat_history_list = ChatHistoryListWidget()
         self.chat_history_list.itemSelectionChanged.connect(self.on_chat_history_select)
         self.chat_history_list.delete_chat_signal.connect(self.delete_chat_by_index)
-        add_chat_btn = QtWidgets.QPushButton("+ New Chat")
+        # --- Change "+ New Chat" button to icon-only, right of "Chats" label ---
+        chat_label = QtWidgets.QLabel("Chats")
+        chat_row = QtWidgets.QHBoxLayout()
+        chat_row.addWidget(chat_label)
+        chat_row.addStretch(1)
+        add_chat_btn = QtWidgets.QPushButton()
+        add_chat_btn.setFixedSize(24, 24)
+        add_chat_btn.setToolTip("Add new chat")
+        chat_plus_icon = QtGui.QIcon.fromTheme("list-add")
+        if chat_plus_icon.isNull():
+            add_chat_btn.setText("＋")
+            add_chat_btn.setFont(QtGui.QFont("Arial", 16, QtGui.QFont.Weight.Bold))
+        else:
+            add_chat_btn.setIcon(chat_plus_icon)
         add_chat_btn.clicked.connect(self.add_new_chat)
-        left_panel.addWidget(add_chat_btn)
+        chat_row.addWidget(add_chat_btn)
+        left_panel.addLayout(chat_row)
         left_panel.addWidget(self.chat_history_list, 1)
 
         # Right panel (vertical splitter)
