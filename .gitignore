@@ -10,3 +10,4 @@ wheels/
 .venv
 
 client_config.json
+chat_histories.json
