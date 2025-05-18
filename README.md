@@ -27,3 +27,5 @@ To understand the capabilities of AI code generation, this project follows a str
 - The AI is good at writing lots of boilerplate that is otherwise a pain to write.
 - The AI is good at knowing obscure language and library features that would otherwise take a long time to learn or discover.
 
+# Screens
+![Screenshot](docs/images/screenshot.png)
