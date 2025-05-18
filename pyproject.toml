@@ -1,0 +1,13 @@
+[project]
+name = "client"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "markdown>=3.7",
+    "ollama>=0.4.8",
+    "pyqt6>=6.7.1",
+    "tk>=0.1.0",
+    "tkhtmlview>=0.3.1",
+]
